@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>R.O.B.O</title>
+  </head>
+  <body onload="Carregar()">
+    <main class="container">
+      <div class="cabecaRobo">
+        <div class="visao">
+          <div class="olho"><div></div></div>
+          <button
+            style="height: 50px; width: 100%"
+            class="botaoCabeca"
+            onclick="visaoCima()"
+            id="visaoCima"
+          ></button>
+          <button
+            style="height: 50px; width: 100%; bottom: 0"
+            class="botaoCabeca"
+            onclick="visaoBaixo()"
+          ></button>
+          <button
+            style="width: 50px; right: 0; top: 0; bottom: 0"
+            class="botaoCabeca"
+            onclick="visaoDireita()"
+          ></button>
+          <button
+            style="width: 50px; left: 0; top: 0; bottom: 0"
+            class="botaoCabeca"
+            onclick="visaoEsquerda()"
+          ></button>
+        </div>
+      </div>
+      <div class="corpoRobo">
+        <div class="ombro Esquerdo">
+          <div class="bracoEsquerdo"></div>
+        </div>
+        <div class="ombro Direito">
+          <div class="bracoDireito">
+            <span><div class="anteBracoDireito"></div></span>
+          </div>
+        </div>
+      </div>
+    </main>
+    <button onclick="visaoCima()">Cima</button>
+    <button onclick="visaoBaixo()">Baixo</button>
+    <button onclick="visaoEsquerda()">Esquerda</button>
+    <button onclick="visaoDireita()">Direita</button>
+  </body>
+</html>
+
+<script>
+  const root = document.documentElement;
+  const inclinarCabeca = `http://localhost:57234/api/Robo/InclinarCabeca`;
+  const rotacionarCabeca = `http://localhost:57234/api/Robo/RotacionarCabeca`;
+
+  const Carregar = async () => {
+    const resultado = await fetch(
+      `http://localhost:57234/api/Robo/Inicializa`
+    ).then((resp) => resp.json());
+
+    if (resultado) {
+      localStorage.setItem("InclinacaoCabeca", InclinarCabeca.EmRepouso);
+      localStorage.setItem("RotacaoCabeca", Rotacao.EmRepouso);
+
+      //Caso descomente essa parte, o robo olha para onde o mouse entrar sua cabeca
+      // const elemento = document.querySelector("#visaoCima");
+      // elemento.addEventListener("mouseover", visaoCima);
+      return;
+    }
+  };
+
+  const visaoEsquerda = async () => {
+    const inclinacao = localStorage.getItem("InclinacaoCabeca");
+
+    if (inclinacao != InclinarCabeca.ParaBaixo) {
+      const dados = {
+        MovimentoRotacao: Rotacao.RotacaoNegativa45,
+        EstadoAtualRotacao: Number(localStorage.getItem("RotacaoCabeca")),
+        EstadoAtualInclinacao: Number(inclinacao),
+      };
+
+      const resultado = await Post(dados, rotacionarCabeca);
+
+      const { comando, estadoAtual } = resultado;
+      const mover = comando && comando.split("/");
+
+      comando && root.style.setProperty("--rightOlho", mover[0]);
+      comando && root.style.setProperty("--rightIris", mover[1]);
+      comando && localStorage.setItem("RotacaoCabeca", estadoAtual);
+    }
+  };
+
+  const visaoDireita = async () => {
+    const inclinacao = localStorage.getItem("InclinacaoCabeca");
+    
+    if (inclinacao != InclinarCabeca.ParaBaixo) {
+      const dados = {
+        MovimentoRotacao: Rotacao.Rotacao45,
+        EstadoAtualRotacao: Number(localStorage.getItem("RotacaoCabeca")),
+        EstadoAtualInclinacao: Number(inclinacao),
+      };
+
+      const resultado = await Post(dados, rotacionarCabeca);
+
+      const { comando, estadoAtual } = resultado;
+      const mover = comando && comando.split("/");
+
+      comando && root.style.setProperty("--rightOlho", mover[0]);
+      comando && root.style.setProperty("--rightIris", mover[1]);
+      comando && localStorage.setItem("RotacaoCabeca", estadoAtual);
+    }
+  };
+
+  const visaoCima = async () => {
+    const dados = {
+      MovimentoInclinacao: InclinarCabeca.ParaCima,
+      EstadoAtualInclinacao: Number(localStorage.getItem("InclinacaoCabeca")),
+    };
+
+    const resultado = await Post(dados, inclinarCabeca);
+
+    const { comando, estadoAtual } = resultado;
+    const mover = comando && comando.split("/");
+
+    comando && root.style.setProperty("--topOlho", mover[0]);
+    comando && root.style.setProperty("--topIris", mover[1]);
+    comando && localStorage.setItem("InclinacaoCabeca", estadoAtual);
+  };
+
+  const visaoBaixo = async () => {
+    const dados = {
+      MovimentoInclinacao: InclinarCabeca.ParaBaixo,
+      EstadoAtualInclinacao: Number(localStorage.getItem("InclinacaoCabeca")),
+    };
+
+    const resultado = await Post(dados, inclinarCabeca);
+
+    const { comando, estadoAtual } = resultado;
+    const mover = comando && comando.split("/");
+
+    comando && root.style.setProperty("--topOlho", mover[0]);
+    comando && root.style.setProperty("--topIris", mover[1]);
+    comando && localStorage.setItem("InclinacaoCabeca", estadoAtual);
+  };
+
+  const Post = async (dados, url) => {
+    return await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dados),
+    }).then((resp) => resp.json());
+  };
+
+  const InclinarCabeca = Object.freeze({
+    ParaCima: 0,
+    EmRepouso: 1,
+    ParaBaixo: 2,
+  });
+
+  const Rotacao = Object.freeze({
+    RotacaoNegativa45: -1,
+    EmRepouso: 0,
+    Rotacao45: 1,
+    Rotacao90: 2,
+  });
+</script>
+
+<style>
+  :root {
+    --direita: 0;
+    --esquerda: 0;
+    --topIris: 40%;
+    --topOlho: 15%;
+    --rightIris: 35%;
+    --rightOlho: 35%;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #081038;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    height: 100vh;
+  }
+
+  .cabecaRobo {
+    background-color: #f2f2f2;
+    width: 150px;
+    height: 180px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 1em rgb(187, 186, 183);
+  }
+
+  .visao {
+    width: inherit;
+    height: inherit;
+    position: relative;
+  }
+
+  .olho {
+    width: 40px;
+    height: 65px;
+    border-radius: 50%;
+    background-color: #081038;
+    margin-top: 20px;
+    align-self: center;
+    position: absolute;
+    transition: all 0.2s linear;
+    top: var(--topOlho);
+    right: var(--rightOlho);
+  }
+
+  .olho div {
+    width: 8px;
+    height: 10px;
+    border-radius: 50%;
+    border: solid 2px #fff;
+    background-color: #000000;
+    position: absolute;
+    right: var(--rightIris);
+    top: var(--topIris);
+    transition: all 0.2s linear;
+  }
+
+  .corpoRobo {
+    background-color: #f2f2f2;
+    width: 300px;
+    height: 400px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 1em rgb(187, 186, 183);
+    position: relative;
+  }
+
+  .ombro {
+    width: 80px;
+    height: 50px;
+    position: absolute;
+    border-radius: 5px;
+    box-shadow: inset 0 0 1em rgb(187, 186, 183);
+    background-color: #f2f2f2;
+  }
+
+  .Direito {
+    right: -50px;
+  }
+
+  .Esquerdo {
+    left: -50px;
+  }
+
+  .bracoEsquerdo {
+    background-color: #f2f2f2;
+    width: 200px;
+    height: 20px;
+    transform: rotate(-65deg);
+    position: absolute;
+    top: 100px;
+    right: -30px;
+  }
+
+  .bracoDireito {
+    background-color: #f2f2f2;
+    width: 200px;
+    height: 20px;
+    transform: rotate(65deg);
+    position: absolute;
+    top: 100px;
+    right: -90px;
+  }
+
+  .bracoDireito span {
+    position: relative;
+    width: inherit;
+    height: inherit;
+  }
+
+  .anteBracoDireito {
+    position: absolute;
+    background-color: #a00c0c;
+  }
+
+  .botaoCabeca {
+    position: absolute;
+    border: none;
+    background-color: transparent;
+  }
+</style>
